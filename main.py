@@ -9,6 +9,8 @@
 # IMPORTANT: for each successful call to simxStart, there
 # should be a corresponding call to simxFinish at the end!
 
+# Documentation: https://www.coppeliarobotics.com/helpFiles/en/remoteApiFunctionsPython.htm
+
 try:
     import sim
 except:
@@ -25,8 +27,14 @@ import pyRTOS
 
 # ---------------------------------------------------
 
-# PyRTOS definitions for messages ----------
+# Global variables
+wanderVelocity = 1
+nearCubeVelocity = 0.4
+ultrasonicValue = 0
 
+
+# PyRTOS definitions for messages ----------
+HAS_READ_ULSTRASONIC = 128
 
 # ---------------------------------------------------
 
@@ -48,26 +56,26 @@ if clientID != -1:
     time.sleep(0.02)
 
     # Getting handles ------------
-    erro, robot = sim.simxGetObjectHandle(clientID, ROBOT, sim.simx_opmode_blocking)
-    if erro != 0:
+    error, robot = sim.simxGetObjectHandle(clientID, ROBOT, sim.simx_opmode_blocking)
+    if error != 0:
         print("Error getting handles")
         sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot_wait)
         sim.simxFinish(-1)
         exit()
 
-    erro, rightMotor = sim.simxGetObjectHandle(
+    error, rightMotor = sim.simxGetObjectHandle(
         clientID, RIGHT_MOTOR, sim.simx_opmode_blocking
     )
-    if erro != 0:
+    if error != 0:
         print("Error getting handles")
         sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot_wait)
         sim.simxFinish(-1)
         exit()
 
-    erro, leftMotor = sim.simxGetObjectHandle(
+    error, leftMotor = sim.simxGetObjectHandle(
         clientID, LEFT_MOTOR, sim.simx_opmode_blocking
     )
-    if erro != 0:
+    if error != 0:
         print("Error getting handles")
         sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot_wait)
         sim.simxFinish(-1)
@@ -75,10 +83,10 @@ if clientID != -1:
 
     ultrasonic = []
     for i in range(0, 16):
-        erro, aux = sim.simxGetObjectHandle(
+        error, aux = sim.simxGetObjectHandle(
             clientID, f"{ULTRASONIC}[{i}]", sim.simx_opmode_blocking
         )
-        if erro != 0:
+        if error != 0:
             print("Error getting handles")
             sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot_wait)
             sim.simxFinish(-1)
@@ -92,7 +100,61 @@ if clientID != -1:
     def task_wander(self):
         # Setup Code
 
-        wander_velocity = 1
+        # End Setup code
+
+        # Pass control back to RTOS
+        yield
+
+        # Thread loop
+        while True:
+            # Work code
+            sim.simxPauseCommunication(clientID, True)
+            sim.simxSetJointTargetVelocity(
+                clientID, rightMotor, wanderVelocity, sim.simx_opmode_oneshot
+            )
+            sim.simxSetJointTargetVelocity(
+                clientID, leftMotor, wanderVelocity, sim.simx_opmode_oneshot
+            )
+            sim.simxPauseCommunication(clientID, False)
+            time.sleep(0.1)
+            # End Work code
+
+            yield [pyRTOS.wait_for_message(self)]
+
+    def task_ultrasonic(self):
+        # Setup Code
+
+        minDistance = 0.4
+        maxDistance = 1
+
+        for i in range(0, 16):
+            (
+                error,
+                detectionState,
+                distancePoint,
+                detectedObjectHandle,
+                detectedSurface,
+            ) = sim.simxReadProximitySensor(
+                clientID, ultrasonic[i], sim.simx_opmode_streaming
+            )
+            while error != 0:
+                (
+                    error,
+                    detectionState,
+                    distancePoint,
+                    detectedObjectHandle,
+                    detectedSurface,
+                ) = sim.simxReadProximitySensor(
+                    clientID, ultrasonic[i], sim.simx_opmode_buffer
+                )
+                # print("Error reading proximity sensor")
+                # sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot_wait)
+                # sim.simxFinish(-1)
+                # exit()
+            if detectionState == False:
+                ultrasonicValue = maxDistance
+            else:
+                ultrasonicValue = distancePoint[2]
 
         # End Setup code
 
@@ -101,12 +163,64 @@ if clientID != -1:
 
         # Thread loop
         while True:
-            sim.simxSetJointTargetVelocity(
-                clientID, rightMotor, wander_velocity, sim.simx_opmode_oneshot
-            )
-            sim.simxSetJointTargetVelocity(
-                clientID, leftMotor, wander_velocity, sim.simx_opmode_oneshot
-            )
+            # Work code
+            for i in range(0, 16):
+                (
+                    error,
+                    detectionState,
+                    distancePoint,
+                    detectedObjectHandle,
+                    detectedSurface,
+                ) = sim.simxReadProximitySensor(
+                    clientID, ultrasonic[i], sim.simx_opmode_streaming
+                )
+                while error != 0:
+                    (
+                        error,
+                        detectionState,
+                        distancePoint,
+                        detectedObjectHandle,
+                        detectedSurface,
+                    ) = sim.simxReadProximitySensor(
+                        clientID, ultrasonic[i], sim.simx_opmode_buffer
+                    )
+                    # print("Error reading proximity sensor")
+                    # sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot_wait)
+                    # sim.simxFinish(-1)
+                    # exit()
+                if detectionState == False:
+                    print(f"Sensor {i} No obstacle detected")
+                    ultrasonicValue = maxDistance
+                else:
+                    print(f"Sensor {i} Obstacle detected at {distancePoint[2]}")
+                    ultrasonicValue = distancePoint[2]
+                    if ultrasonicValue <= minDistance:
+                        sim.simxPauseCommunication(clientID, True)
+                        sim.simxSetJointTargetVelocity(
+                            clientID,
+                            rightMotor,
+                            nearCubeVelocity,
+                            sim.simx_opmode_oneshot,
+                        )
+                        sim.simxSetJointTargetVelocity(
+                            clientID,
+                            leftMotor,
+                            nearCubeVelocity,
+                            sim.simx_opmode_oneshot,
+                        )
+                        sim.simxPauseCommunication(clientID, False)
+                        time.sleep(0.1)
+                        self.send(
+                            pyRTOS.Message(
+                                HAS_READ_ULSTRASONIC,
+                                self,
+                                "color_sensor",
+                                ultrasonicValue,
+                            )
+                        )
+            # End Work code
+
+            yield [pyRTOS.timeout(0.05)]
 
     # ------------------------------------------------------------------------------
 
@@ -117,18 +231,18 @@ if clientID != -1:
             priority=20,
             name="wander",
             notifications=None,
-            mailbox=False,
+            mailbox=True,
         )
     )
-    # pyRTOS.add_task(
-    #     pyRTOS.Task(
-    #         task_liga_ventoinha,
-    #         priority=2,
-    #         name="liga_ventoinha",
-    #         notifications=None,
-    #         mailbox=True,
-    #     )
-    # )
+    pyRTOS.add_task(
+        pyRTOS.Task(
+            task_ultrasonic,
+            priority=2,
+            name="ultrasonic",
+            notifications=None,
+            mailbox=True,
+        )
+    )
     # pyRTOS.add_task(
     #     pyRTOS.Task(task_LED, priority=6, name="LED", notifications=None, mailbox=True)
     # )
