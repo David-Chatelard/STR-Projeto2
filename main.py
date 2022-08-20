@@ -30,8 +30,11 @@ import pyRTOS
 
 # ---------------------------------------------------
 
-# Path's for objects -----------
-
+# Name for objects handles -----------
+ROBOT = "/PioneerP3DX"
+RIGHT_MOTOR = f"{ROBOT}/rightMotor"
+LEFT_MOTOR = f"{ROBOT}/leftMotor"
+ULTRASONIC = "/ultrasonicSensor"
 
 # ---------------------------------------------------
 
@@ -45,55 +48,90 @@ if clientID != -1:
     time.sleep(0.02)
 
     # Getting handles ------------
-    [erro, ventoinha] = sim.simxGetObjectHandle(
-        clientID, ROBOT, sim.simx_opmode_blocking
+    erro, robot = sim.simxGetObjectHandle(clientID, ROBOT, sim.simx_opmode_blocking)
+    if erro != 0:
+        print("Error getting handles")
+        sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot_wait)
+        sim.simxFinish(-1)
+        exit()
+
+    erro, rightMotor = sim.simxGetObjectHandle(
+        clientID, RIGHT_MOTOR, sim.simx_opmode_blocking
     )
     if erro != 0:
         print("Error getting handles")
         sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot_wait)
         sim.simxFinish(-1)
         exit()
-    ultrasound = []
-    for i in range(0, 13):
-        [erro, aux] = sim.simxGetObjectHandle(
-            clientID, SENSOR + str(i), sim.simx_opmode_blocking
+
+    erro, leftMotor = sim.simxGetObjectHandle(
+        clientID, LEFT_MOTOR, sim.simx_opmode_blocking
+    )
+    if erro != 0:
+        print("Error getting handles")
+        sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot_wait)
+        sim.simxFinish(-1)
+        exit()
+
+    ultrasonic = []
+    for i in range(0, 16):
+        erro, aux = sim.simxGetObjectHandle(
+            clientID, f"{ULTRASONIC}[{i}]", sim.simx_opmode_blocking
         )
         if erro != 0:
             print("Error getting handles")
             sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot_wait)
             sim.simxFinish(-1)
             exit()
-        ultrasound.append(aux)
+        ultrasonic.append(aux)
 
     # ---------------------------------------------------
 
     execution_time = []
     # Tasks definition ---------------------------------------
+    def task_wander(self):
+        # Setup Code
+
+        wander_velocity = 1
+
+        # End Setup code
+
+        # Pass control back to RTOS
+        yield
+
+        # Thread loop
+        while True:
+            sim.simxSetJointTargetVelocity(
+                clientID, rightMotor, wander_velocity, sim.simx_opmode_oneshot
+            )
+            sim.simxSetJointTargetVelocity(
+                clientID, leftMotor, wander_velocity, sim.simx_opmode_oneshot
+            )
 
     # ------------------------------------------------------------------------------
 
     # Adding tasks -------------------------------------------
     pyRTOS.add_task(
         pyRTOS.Task(
-            task_fototransistores,
-            priority=1,
-            name="fototransistores",
+            task_wander,
+            priority=20,
+            name="wander",
             notifications=None,
             mailbox=False,
         )
     )
-    pyRTOS.add_task(
-        pyRTOS.Task(
-            task_liga_ventoinha,
-            priority=2,
-            name="liga_ventoinha",
-            notifications=None,
-            mailbox=True,
-        )
-    )
-    pyRTOS.add_task(
-        pyRTOS.Task(task_LED, priority=6, name="LED", notifications=None, mailbox=True)
-    )
+    # pyRTOS.add_task(
+    #     pyRTOS.Task(
+    #         task_liga_ventoinha,
+    #         priority=2,
+    #         name="liga_ventoinha",
+    #         notifications=None,
+    #         mailbox=True,
+    #     )
+    # )
+    # pyRTOS.add_task(
+    #     pyRTOS.Task(task_LED, priority=6, name="LED", notifications=None, mailbox=True)
+    # )
 
     # -------------------------------------------------------------------------------
 
