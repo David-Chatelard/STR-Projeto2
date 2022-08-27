@@ -23,6 +23,7 @@ except:
     print("")
 
 import time
+import numpy as np
 import pyRTOS
 
 # ---------------------------------------------------
@@ -31,10 +32,14 @@ import pyRTOS
 wanderVelocity = 1
 nearCubeVelocity = 0.4
 ultrasonicValue = 0
+minDistance = 0.4
+maxDistance = 1
+colorSensorValue = ""
 
 
 # PyRTOS definitions for messages ----------
 HAS_READ_ULSTRASONIC = 128
+HAS_READ_COLOR = 129
 
 # ---------------------------------------------------
 
@@ -43,6 +48,7 @@ ROBOT = "/PioneerP3DX"
 RIGHT_MOTOR = f"{ROBOT}/rightMotor"
 LEFT_MOTOR = f"{ROBOT}/leftMotor"
 ULTRASONIC = "/ultrasonicSensor"
+COLOR_SENSOR = "/colorSensor"
 
 # ---------------------------------------------------
 
@@ -67,7 +73,7 @@ if clientID != -1:
         clientID, RIGHT_MOTOR, sim.simx_opmode_blocking
     )
     if error != 0:
-        print("Error getting handles")
+        print("Error getting rightMotor handles")
         sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot_wait)
         sim.simxFinish(-1)
         exit()
@@ -76,7 +82,7 @@ if clientID != -1:
         clientID, LEFT_MOTOR, sim.simx_opmode_blocking
     )
     if error != 0:
-        print("Error getting handles")
+        print("Error getting leftMotor handles")
         sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot_wait)
         sim.simxFinish(-1)
         exit()
@@ -87,11 +93,20 @@ if clientID != -1:
             clientID, f"{ULTRASONIC}[{i}]", sim.simx_opmode_blocking
         )
         if error != 0:
-            print("Error getting handles")
+            print(f"Error getting ultrasonic[{i}] handles")
             sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot_wait)
             sim.simxFinish(-1)
             exit()
         ultrasonic.append(aux)
+
+    error, colorSensor = sim.simxGetObjectHandle(
+        clientID, f"{COLOR_SENSOR}", sim.simx_opmode_blocking
+    )
+    if error != 0:
+        print("Error getting colorSensor handles")
+        sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot_wait)
+        sim.simxFinish(-1)
+        exit()
 
     # ---------------------------------------------------
 
@@ -123,9 +138,6 @@ if clientID != -1:
 
     def task_ultrasonic(self):
         # Setup Code
-
-        minDistance = 0.4
-        maxDistance = 1
 
         for i in range(0, 16):
             (
@@ -189,10 +201,10 @@ if clientID != -1:
                     # sim.simxFinish(-1)
                     # exit()
                 if detectionState == False:
-                    print(f"Sensor {i} No obstacle detected")
+                    # print(f"Sensor {i} No obstacle detected")
                     ultrasonicValue = maxDistance
                 else:
-                    print(f"Sensor {i} Obstacle detected at {distancePoint[2]}")
+                    # print(f"Sensor {i} Obstacle detected at {distancePoint[2]}")
                     ultrasonicValue = distancePoint[2]
                     if ultrasonicValue <= minDistance:
                         sim.simxPauseCommunication(clientID, True)
@@ -222,6 +234,66 @@ if clientID != -1:
 
             yield [pyRTOS.timeout(0.05)]
 
+    def task_color_sensor(self):
+        # Setup Code
+        # End Setup code
+
+        # Pass control back to RTOS
+        yield
+
+        # Thread loop
+        while True:
+            # Work code
+
+            # Se a distancia do sensor for menor que o minimo, identificar a cor
+            if ultrasonicValue < minDistance:
+                erro, resolution, Image = sim.simxGetVisionSensorImage(
+                    clientID, colorSensor, 0, sim.simx_opmode_streaming
+                )
+                while erro != 0:
+                    erro, resolution, Image = sim.simxGetVisionSensorImage(
+                        clientID, colorSensor, 0, sim.simx_opmode_buffer
+                    )
+
+                img = np.array(Image, dtype=np.uint8)
+                minColorValues = 130
+                rgbColor = 0
+                if img[0] > minColorValues:
+                    rgbColor += 100
+                if img[1] > minColorValues:
+                    rgbColor += 10
+                if img[2] > minColorValues:
+                    rgbColor += 1
+
+                if rgbColor == 1:
+                    colorSensorValue = "AZUL"
+                elif rgbColor == 10:
+                    colorSensorValue = "VERDE"
+                elif rgbColor == 100:
+                    colorSensorValue = "VERMELHO"
+                elif rgbColor == 110:
+                    colorSensorValue = "AMARELO"
+                elif rgbColor == 111:
+                    colorSensorValue = "BRANCO"
+                else:
+                    colorSensorValue = "PRETO"
+                print(f"img0: {img[0]}")
+                print(f"img1: {img[1]}")
+                print(f"img2: {img[2]}")
+                print(f"rgbColor: {rgbColor}")
+                print(f"Color Sensor: {colorSensorValue}")
+                self.send(
+                    pyRTOS.Message(
+                        HAS_READ_COLOR,
+                        self,
+                        "route_manager",
+                        colorSensorValue,
+                    )
+                )
+
+            # End Work code
+            yield [pyRTOS.timeout(0.05)]
+
     # ------------------------------------------------------------------------------
 
     # Adding tasks -------------------------------------------
@@ -237,8 +309,17 @@ if clientID != -1:
     pyRTOS.add_task(
         pyRTOS.Task(
             task_ultrasonic,
-            priority=2,
+            priority=1,
             name="ultrasonic",
+            notifications=None,
+            mailbox=True,
+        )
+    )
+    pyRTOS.add_task(
+        pyRTOS.Task(
+            task_color_sensor,
+            priority=2,
+            name="color_sensor",
             notifications=None,
             mailbox=True,
         )
