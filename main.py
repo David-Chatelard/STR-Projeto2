@@ -277,11 +277,11 @@ if clientID != -1:
                     colorSensorValue = "BRANCO"
                 else:
                     colorSensorValue = "PRETO"
-                print(f"img0: {img[0]}")
-                print(f"img1: {img[1]}")
-                print(f"img2: {img[2]}")
-                print(f"rgbColor: {rgbColor}")
-                print(f"Color Sensor: {colorSensorValue}")
+                # print(f"img0: {img[0]}")
+                # print(f"img1: {img[1]}")
+                # print(f"img2: {img[2]}")
+                # print(f"rgbColor: {rgbColor}")
+                # print(f"Color Sensor: {colorSensorValue}")
                 self.send(
                     pyRTOS.Message(
                         HAS_READ_COLOR,
