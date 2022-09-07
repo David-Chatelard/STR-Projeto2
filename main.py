@@ -33,15 +33,20 @@ FIRST_ULTRASONIC = 2
 LAST_ULTRASONIC = 6  # last ultrasonic I want to read + 1, because range() doesn't include the last number
 wanderVelocity = 1
 nearCubeVelocity = 0.4
+fasterVelocityToTurn = 0.6
+slowerVelocityToTurn = 0.3
 ultrasonicValue = 0
 minDistance = 0.5
 maxDistance = 1
 colorSensorValue = ""
+timeTurning = 3
+isTurning = False
 
 
 # PyRTOS definitions for messages ----------
 HAS_READ_ULSTRASONIC = 128
 HAS_READ_COLOR = 129
+HAS_TURNED = 130
 
 # ---------------------------------------------------
 
@@ -239,6 +244,7 @@ if clientID != -1:
 
     def task_color_sensor(self):
         # Setup Code
+        global colorSensorValue
         # End Setup code
 
         # Pass control back to RTOS
@@ -300,6 +306,86 @@ if clientID != -1:
             # End Work code
             yield [pyRTOS.timeout(0.05)]
 
+    def task_route_manager(self):
+        # Setup Code
+        global isTurning
+        global colorSensorValue
+        # End Setup code
+
+        # Pass control back to RTOS
+        yield
+
+        # Thread loop
+        while True:
+            # Work code
+            if colorSensorValue == "RED":
+                colorSensorValue = ""
+                isTurning = True
+                print("STARTED TURNING LEFT")
+                # Blink left LED
+                sim.simxPauseCommunication(clientID, True)
+                sim.simxSetJointTargetVelocity(
+                    clientID, rightMotor, fasterVelocityToTurn, sim.simx_opmode_oneshot
+                )
+                sim.simxSetJointTargetVelocity(
+                    clientID, leftMotor, slowerVelocityToTurn, sim.simx_opmode_oneshot
+                )
+                sim.simxPauseCommunication(clientID, False)
+                time.sleep(timeTurning)
+                print("STOPED TURNING LEFT")
+                sim.simxPauseCommunication(clientID, True)
+                sim.simxSetJointTargetVelocity(
+                    clientID, rightMotor, wanderVelocity, sim.simx_opmode_oneshot
+                )
+                sim.simxSetJointTargetVelocity(
+                    clientID, leftMotor, wanderVelocity, sim.simx_opmode_oneshot
+                )
+                sim.simxPauseCommunication(clientID, False)
+                time.sleep(0.1)
+                self.send(
+                    pyRTOS.Message(
+                        HAS_TURNED,
+                        self,
+                        "wander",
+                        colorSensorValue,
+                    )
+                )
+            elif colorSensorValue == "BLUE":
+                colorSensorValue = ""
+                isTurning = True
+                print("STARTED TURNING RIGHT")
+                # Blink right LED
+                sim.simxPauseCommunication(clientID, True)
+                sim.simxSetJointTargetVelocity(
+                    clientID, rightMotor, slowerVelocityToTurn, sim.simx_opmode_oneshot
+                )
+                sim.simxSetJointTargetVelocity(
+                    clientID, leftMotor, fasterVelocityToTurn, sim.simx_opmode_oneshot
+                )
+                sim.simxPauseCommunication(clientID, False)
+                time.sleep(timeTurning)
+                print("STOPED TURNING RIGHT")
+                sim.simxPauseCommunication(clientID, True)
+                sim.simxSetJointTargetVelocity(
+                    clientID, rightMotor, wanderVelocity, sim.simx_opmode_oneshot
+                )
+                sim.simxSetJointTargetVelocity(
+                    clientID, leftMotor, wanderVelocity, sim.simx_opmode_oneshot
+                )
+                sim.simxPauseCommunication(clientID, False)
+                time.sleep(0.1)
+                self.send(
+                    pyRTOS.Message(
+                        HAS_TURNED,
+                        self,
+                        "wander",
+                        colorSensorValue,
+                    )
+                )
+            # End Work code
+
+            yield [pyRTOS.wait_for_message(self)]
+
     # ------------------------------------------------------------------------------
 
     # Adding tasks -------------------------------------------
@@ -326,6 +412,15 @@ if clientID != -1:
             task_color_sensor,
             priority=2,
             name="color_sensor",
+            notifications=None,
+            mailbox=True,
+        )
+    )
+    pyRTOS.add_task(
+        pyRTOS.Task(
+            task_route_manager,
+            priority=3,
+            name="route_manager",
             notifications=None,
             mailbox=True,
         )
