@@ -29,10 +29,12 @@ import pyRTOS
 # ---------------------------------------------------
 
 # Global variables
+FIRST_ULTRASONIC = 2
+LAST_ULTRASONIC = 6  # last ultrasonic I want to read + 1, because range() doesn't include the last number
 wanderVelocity = 1
 nearCubeVelocity = 0.4
 ultrasonicValue = 0
-minDistance = 0.4
+minDistance = 0.5
 maxDistance = 1
 colorSensorValue = ""
 
@@ -88,7 +90,7 @@ if clientID != -1:
         exit()
 
     ultrasonic = []
-    for i in range(0, 16):
+    for i in range(FIRST_ULTRASONIC, LAST_ULTRASONIC):
         error, aux = sim.simxGetObjectHandle(
             clientID, f"{ULTRASONIC}[{i}]", sim.simx_opmode_blocking
         )
@@ -138,35 +140,36 @@ if clientID != -1:
 
     def task_ultrasonic(self):
         # Setup Code
+        global ultrasonicValue
 
-        for i in range(0, 16):
-            (
-                error,
-                detectionState,
-                distancePoint,
-                detectedObjectHandle,
-                detectedSurface,
-            ) = sim.simxReadProximitySensor(
-                clientID, ultrasonic[i], sim.simx_opmode_streaming
-            )
-            while error != 0:
-                (
-                    error,
-                    detectionState,
-                    distancePoint,
-                    detectedObjectHandle,
-                    detectedSurface,
-                ) = sim.simxReadProximitySensor(
-                    clientID, ultrasonic[i], sim.simx_opmode_buffer
-                )
-                # print("Error reading proximity sensor")
-                # sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot_wait)
-                # sim.simxFinish(-1)
-                # exit()
-            if detectionState == False:
-                ultrasonicValue = maxDistance
-            else:
-                ultrasonicValue = distancePoint[2]
+        # for i in range(len(ultrasonic)):
+        #     (
+        #         error,
+        #         detectionState,
+        #         distancePoint,
+        #         detectedObjectHandle,
+        #         detectedSurface,
+        #     ) = sim.simxReadProximitySensor(
+        #         clientID, ultrasonic[i], sim.simx_opmode_streaming
+        #     )
+        #     while error != 0:
+        #         (
+        #             error,
+        #             detectionState,
+        #             distancePoint,
+        #             detectedObjectHandle,
+        #             detectedSurface,
+        #         ) = sim.simxReadProximitySensor(
+        #             clientID, ultrasonic[i], sim.simx_opmode_buffer
+        #         )
+        #         # print("Error reading proximity sensor")
+        #         # sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot_wait)
+        #         # sim.simxFinish(-1)
+        #         # exit()
+        #     if detectionState == False:
+        #         ultrasonicValue = maxDistance
+        #     else:
+        #         ultrasonicValue = distancePoint[2]
 
         # End Setup code
 
@@ -176,7 +179,7 @@ if clientID != -1:
         # Thread loop
         while True:
             # Work code
-            for i in range(0, 16):
+            for i in range(len(ultrasonic)):
                 (
                     error,
                     detectionState,
@@ -247,6 +250,9 @@ if clientID != -1:
 
             # Se a distancia do sensor for menor que o minimo, identificar a cor
             if ultrasonicValue < minDistance:
+                print(
+                    f"ultrasonicValue: {ultrasonicValue} and minDistance: {minDistance}"
+                )
                 erro, resolution, Image = sim.simxGetVisionSensorImage(
                     clientID, colorSensor, 0, sim.simx_opmode_streaming
                 )
@@ -266,22 +272,22 @@ if clientID != -1:
                     rgbColor += 1
 
                 if rgbColor == 1:
-                    colorSensorValue = "AZUL"
+                    colorSensorValue = "BLUE"
                 elif rgbColor == 10:
-                    colorSensorValue = "VERDE"
+                    colorSensorValue = "GREEN"
                 elif rgbColor == 100:
-                    colorSensorValue = "VERMELHO"
+                    colorSensorValue = "RED"
                 elif rgbColor == 110:
-                    colorSensorValue = "AMARELO"
+                    colorSensorValue = "YELLOW"
                 elif rgbColor == 111:
-                    colorSensorValue = "BRANCO"
+                    colorSensorValue = "WHITE"
                 else:
-                    colorSensorValue = "PRETO"
+                    colorSensorValue = "BLACK"
                 # print(f"img0: {img[0]}")
                 # print(f"img1: {img[1]}")
                 # print(f"img2: {img[2]}")
                 # print(f"rgbColor: {rgbColor}")
-                # print(f"Color Sensor: {colorSensorValue}")
+                print(f"Color Sensor: {colorSensorValue}")
                 self.send(
                     pyRTOS.Message(
                         HAS_READ_COLOR,
