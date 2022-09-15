@@ -1,3 +1,4 @@
 ver o yield da task de route_manager
+
 ver de botar sensor de cor alinhado com o ultrassom nas extremidades e no centro do robo, pra saber
 qual ultrassom leu que está perto e obter a cor equivalente a ele
