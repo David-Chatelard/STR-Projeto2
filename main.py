@@ -29,17 +29,17 @@ import pyRTOS
 # ---------------------------------------------------
 
 # Global variables
-FIRST_ULTRASONIC = 2
-LAST_ULTRASONIC = 6  # last ultrasonic I want to read + 1, because range() doesn't include the last number
+FIRST_ULTRASONIC = 0
+LAST_ULTRASONIC = 4  # last ultrasonic I want to read + 1, because range() doesn't include the last number
 wanderVelocity = 1
 nearCubeVelocity = 0.4
-fasterVelocityToTurn = 0.6
+fasterVelocityToTurn = 0.8
 slowerVelocityToTurn = 0.3
 ultrasonicValue = 0
 minDistance = 0.5
 maxDistance = 1
 colorSensorValue = ""
-timeTurning = 3
+timeTurning = 1
 isTurning = False
 
 
@@ -68,7 +68,8 @@ if clientID != -1:
     sim.simxAddStatusbarMessage(clientID, "Starting...", sim.simx_opmode_oneshot_wait)
     time.sleep(0.02)
 
-    # Getting handles ------------
+    # Getting handles -------------------------------------------------------------------------------------------
+    # Robot handle
     error, robot = sim.simxGetObjectHandle(clientID, ROBOT, sim.simx_opmode_blocking)
     if error != 0:
         print("Error getting handles")
@@ -76,6 +77,7 @@ if clientID != -1:
         sim.simxFinish(-1)
         exit()
 
+    # Right motor handles
     error, rightMotor = sim.simxGetObjectHandle(
         clientID, RIGHT_MOTOR, sim.simx_opmode_blocking
     )
@@ -85,6 +87,7 @@ if clientID != -1:
         sim.simxFinish(-1)
         exit()
 
+    # Left motor handles
     error, leftMotor = sim.simxGetObjectHandle(
         clientID, LEFT_MOTOR, sim.simx_opmode_blocking
     )
@@ -94,6 +97,7 @@ if clientID != -1:
         sim.simxFinish(-1)
         exit()
 
+    # Ultrasonics handles
     ultrasonic = []
     for i in range(FIRST_ULTRASONIC, LAST_ULTRASONIC):
         error, aux = sim.simxGetObjectHandle(
@@ -106,6 +110,7 @@ if clientID != -1:
             exit()
         ultrasonic.append(aux)
 
+    # Color sensor handle
     error, colorSensor = sim.simxGetObjectHandle(
         clientID, f"{COLOR_SENSOR}", sim.simx_opmode_blocking
     )
@@ -115,10 +120,9 @@ if clientID != -1:
         sim.simxFinish(-1)
         exit()
 
-    # ---------------------------------------------------
+    # ----------------------------------------------------------------------------------
 
-    execution_time = []
-    # Tasks definition ---------------------------------------
+    # Tasks definition -----------------------------------------------------------------
     def task_wander(self):
         # Setup Code
 
@@ -130,6 +134,8 @@ if clientID != -1:
         # Thread loop
         while True:
             # Work code
+
+            # Setting wandering velocity
             sim.simxPauseCommunication(clientID, True)
             sim.simxSetJointTargetVelocity(
                 clientID, rightMotor, wanderVelocity, sim.simx_opmode_oneshot
@@ -185,6 +191,7 @@ if clientID != -1:
         while True:
             # Work code
             for i in range(len(ultrasonic)):
+                # Reading all ultrasonic sensors
                 (
                     error,
                     detectionState,
@@ -208,12 +215,15 @@ if clientID != -1:
                     # sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot_wait)
                     # sim.simxFinish(-1)
                     # exit()
+
+                # If didn't detect anything, set distance to maxDistance
                 if detectionState == False:
                     # print(f"Sensor {i} No obstacle detected")
                     ultrasonicValue = maxDistance
                 else:
                     # print(f"Sensor {i} Obstacle detected at {distancePoint[2]}")
                     ultrasonicValue = distancePoint[2]
+                    # If obstacle is too close, slow down the robot and send message
                     if ultrasonicValue <= minDistance:
                         sim.simxPauseCommunication(clientID, True)
                         sim.simxSetJointTargetVelocity(
@@ -230,6 +240,7 @@ if clientID != -1:
                         )
                         sim.simxPauseCommunication(clientID, False)
                         time.sleep(0.1)
+
                         self.send(
                             pyRTOS.Message(
                                 HAS_READ_ULSTRASONIC,
@@ -254,7 +265,7 @@ if clientID != -1:
         while True:
             # Work code
 
-            # Se a distancia do sensor for menor que o minimo, identificar a cor
+            # If distance is less than minDistance, read color sensor
             if ultrasonicValue < minDistance:
                 print(
                     f"ultrasonicValue: {ultrasonicValue} and minDistance: {minDistance}"
@@ -267,6 +278,7 @@ if clientID != -1:
                         clientID, colorSensor, 0, sim.simx_opmode_buffer
                     )
 
+                # Getting color value from sensor reading
                 img = np.array(Image, dtype=np.uint8)
                 minColorValues = 130
                 rgbColor = 0
@@ -318,11 +330,16 @@ if clientID != -1:
         # Thread loop
         while True:
             # Work code
+
+            # If color is RED, turn left
             if colorSensorValue == "RED":
                 colorSensorValue = ""
                 isTurning = True
+
+                # TODO Blink left LED
+
+                # Making right motor faster than left motor, in order to turn left
                 print("STARTED TURNING LEFT")
-                # Blink left LED
                 sim.simxPauseCommunication(clientID, True)
                 sim.simxSetJointTargetVelocity(
                     clientID, rightMotor, fasterVelocityToTurn, sim.simx_opmode_oneshot
@@ -332,6 +349,10 @@ if clientID != -1:
                 )
                 sim.simxPauseCommunication(clientID, False)
                 time.sleep(timeTurning)
+
+                isTurning = False
+
+                # Going back to normal velocity
                 print("STOPED TURNING LEFT")
                 sim.simxPauseCommunication(clientID, True)
                 sim.simxSetJointTargetVelocity(
@@ -342,6 +363,7 @@ if clientID != -1:
                 )
                 sim.simxPauseCommunication(clientID, False)
                 time.sleep(0.1)
+
                 self.send(
                     pyRTOS.Message(
                         HAS_TURNED,
@@ -350,11 +372,16 @@ if clientID != -1:
                         colorSensorValue,
                     )
                 )
+
+            # If color is BLUE, turn right
             elif colorSensorValue == "BLUE":
                 colorSensorValue = ""
                 isTurning = True
+
+                # TODO Blink right LED
+
+                # Making left motor faster than right motor, in order to turn right
                 print("STARTED TURNING RIGHT")
-                # Blink right LED
                 sim.simxPauseCommunication(clientID, True)
                 sim.simxSetJointTargetVelocity(
                     clientID, rightMotor, slowerVelocityToTurn, sim.simx_opmode_oneshot
@@ -364,6 +391,10 @@ if clientID != -1:
                 )
                 sim.simxPauseCommunication(clientID, False)
                 time.sleep(timeTurning)
+
+                isTurning = False
+
+                # Going back to normal velocity
                 print("STOPED TURNING RIGHT")
                 sim.simxPauseCommunication(clientID, True)
                 sim.simxSetJointTargetVelocity(
@@ -374,6 +405,7 @@ if clientID != -1:
                 )
                 sim.simxPauseCommunication(clientID, False)
                 time.sleep(0.1)
+
                 self.send(
                     pyRTOS.Message(
                         HAS_TURNED,
@@ -386,9 +418,9 @@ if clientID != -1:
 
             yield [pyRTOS.wait_for_message(self)]
 
-    # ------------------------------------------------------------------------------
+    # ----------------------------------------------------------------------------------------
 
-    # Adding tasks -------------------------------------------
+    # Adding tasks ---------------------------------------------------------------------------
     pyRTOS.add_task(
         pyRTOS.Task(
             task_wander,
@@ -410,7 +442,7 @@ if clientID != -1:
     pyRTOS.add_task(
         pyRTOS.Task(
             task_color_sensor,
-            priority=2,
+            priority=1,
             name="color_sensor",
             notifications=None,
             mailbox=True,
@@ -419,7 +451,7 @@ if clientID != -1:
     pyRTOS.add_task(
         pyRTOS.Task(
             task_route_manager,
-            priority=3,
+            priority=5,
             name="route_manager",
             notifications=None,
             mailbox=True,
@@ -429,12 +461,12 @@ if clientID != -1:
     #     pyRTOS.Task(task_LED, priority=6, name="LED", notifications=None, mailbox=True)
     # )
 
-    # -------------------------------------------------------------------------------
+    # ----------------------------------------------------------------------------------------
 
     # Start RTOS
     pyRTOS.start()
 
-    # Now close the connection to CoppeliaSim --------------------------------------
+    # Now close the connection to CoppeliaSim ------------------------------------------------
     sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot_wait)
     sim.simxAddStatusbarMessage(clientID, "Finishing...", sim.simx_opmode_blocking)
     sim.simxFinish(-1)
