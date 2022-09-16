@@ -365,6 +365,7 @@ if clientID != -1:
                 # time.sleep(timeTurning)
 
                 turning.turn_90_degrees(clientID, 1, robot, rightMotor, leftMotor)
+                turning.turn_90_degrees(clientID, -1, robot, rightMotor, leftMotor)
 
                 # TODO Turn back to original orientation
 
@@ -411,6 +412,7 @@ if clientID != -1:
                 # time.sleep(timeTurning)
 
                 turning.turn_90_degrees(clientID, -1, robot, rightMotor, leftMotor)
+                turning.turn_90_degrees(clientID, 1, robot, rightMotor, leftMotor)
 
                 # TODO Turn back to original orientation
 
@@ -436,6 +438,39 @@ if clientID != -1:
                         colorSensorValue,
                     )
                 )
+
+            elif colorSensorValue == "WHITE":
+                colorSensorValue = ""
+                isTurning = True
+
+                print("STARTED 180 TURN")
+
+                turning.turn_90_degrees(clientID, -1, robot, rightMotor, leftMotor)
+                turning.turn_90_degrees(clientID, -1, robot, rightMotor, leftMotor)
+
+                isTurning = False
+
+                # Going back to normal velocity
+                print("STOPED 180 TURN")
+                sim.simxPauseCommunication(clientID, True)
+                sim.simxSetJointTargetVelocity(
+                    clientID, rightMotor, wanderVelocity, sim.simx_opmode_oneshot
+                )
+                sim.simxSetJointTargetVelocity(
+                    clientID, leftMotor, wanderVelocity, sim.simx_opmode_oneshot
+                )
+                sim.simxPauseCommunication(clientID, False)
+                time.sleep(0.1)
+
+                self.send(
+                    pyRTOS.Message(
+                        HAS_TURNED,
+                        self,
+                        "wander",
+                        colorSensorValue,
+                    )
+                )
+
             # End Work code
 
             # yield [pyRTOS.wait_for_message(self)]
