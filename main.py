@@ -366,6 +366,8 @@ if clientID != -1:
 
                 turning.turn_90_degrees(clientID, 1, robot, rightMotor, leftMotor)
 
+                # TODO Turn back to original orientation
+
                 isTurning = False
 
                 # Going back to normal velocity
@@ -409,6 +411,8 @@ if clientID != -1:
                 # time.sleep(timeTurning)
 
                 turning.turn_90_degrees(clientID, -1, robot, rightMotor, leftMotor)
+
+                # TODO Turn back to original orientation
 
                 isTurning = False
 
