@@ -18,13 +18,13 @@ fasterVelocityToTurn = 0.8
 slowerVelocityToTurn = 0.3
 
 
-def stop(clientID, right_motor_handle, left_motor_handle):
+def wander(clientID, right_motor_handle, left_motor_handle):
     sim.simxPauseCommunication(clientID, True)
     sim.simxSetJointTargetVelocity(
-        clientID, right_motor_handle, 0, sim.simx_opmode_oneshot
+        clientID, right_motor_handle, wanderVelocity, sim.simx_opmode_oneshot
     )
     sim.simxSetJointTargetVelocity(
-        clientID, left_motor_handle, 0, sim.simx_opmode_oneshot
+        clientID, left_motor_handle, wanderVelocity, sim.simx_opmode_oneshot
     )
     sim.simxPauseCommunication(clientID, False)
     time.sleep(0.5)
@@ -110,4 +110,4 @@ def turn_90_degrees(
             # print(f"final angle: {final_angle}")
             # print(f"turned angle: {turned_angle}")
             break
-    stop(clientID, right_motor_handle, left_motor_handle)
+    wander(clientID, right_motor_handle, left_motor_handle)
