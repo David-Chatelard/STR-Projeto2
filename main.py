@@ -193,7 +193,6 @@ if clientID != -1:
 
         # Thread loop
         while True:
-            startingTime = time.time_ns()
             # Work code
             for i in range(len(ultrasonic)):
                 # Reading all ultrasonic sensors
@@ -258,9 +257,6 @@ if clientID != -1:
                         if i != 2:
                             break
             # End Work code
-            finishingTime = time.time_ns()
-            if finishingTime - startingTime > 0:
-                executionTimes.append(finishingTime - startingTime)
             print(f"Execution Times: {executionTimes}")
 
             yield [pyRTOS.timeout(0.05)]
@@ -341,6 +337,7 @@ if clientID != -1:
                     )
                 )
             # End Work code
+
             yield [pyRTOS.timeout(0.05)]
 
     def task_route_manager(self):
@@ -354,6 +351,7 @@ if clientID != -1:
 
         # Thread loop
         while True:
+            startingTime = time.time_ns()
             # Work code
 
             # If color is RED, turn left
@@ -560,8 +558,10 @@ if clientID != -1:
                 )
 
             # End Work code
+            finishingTime = time.time_ns()
+            if finishingTime - startingTime > 0:
+                executionTimes.append(finishingTime - startingTime)
 
-            # yield [pyRTOS.wait_for_message(self)]
             yield [pyRTOS.timeout(0.05)]
 
     def task_blink_LEDs(self):
