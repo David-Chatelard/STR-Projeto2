@@ -261,6 +261,7 @@ if clientID != -1:
                         if i != 2:
                             break
             # End Work code
+            print(f"Execution Times: {executionTimes}")
 
             yield [pyRTOS.timeout(0.05)]
 
