@@ -53,6 +53,11 @@ timeTurning = 1
 isTurning = False
 ultrasonicDetected = [False, False, False, False]
 
+# LED positions
+position_OFF_LED = [0, 0, 0]
+position_ON_LEFT_LED = [-0.185, 0.097, 0.00519]
+position_ON_RIGHT_LED = [-0.185, -0.097, 0.00519]
+
 
 # PyRTOS definitions for messages ----------
 HAS_READ_ULSTRASONIC = 128
@@ -67,6 +72,8 @@ RIGHT_MOTOR = f"{ROBOT}/rightMotor"
 LEFT_MOTOR = f"{ROBOT}/leftMotor"
 ULTRASONIC = "/ultrasonicSensor"
 COLOR_SENSOR = "/colorSensor"
+LEFT_LED = "leftLED"
+RIGHT_LED = "rightLED"
 
 # ---------------------------------------------------
 
@@ -133,14 +140,14 @@ if clientID != -1:
             sim.simxFinish(-1)
             exit()
         colorSensor.append(aux)
-    # error, colorSensor = sim.simxGetObjectHandle(
-    #     clientID, f"{COLOR_SENSOR}", sim.simx_opmode_blocking
-    # )
-    # if error != 0:
-    #     print("Error getting colorSensor handles")
-    #     sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot_wait)
-    #     sim.simxFinish(-1)
-    #     exit()
+
+    # Lights handles
+    error, leftLED = sim.simxGetObjectHandle(
+        clientID, LEFT_LED, sim.simx_opmode_blocking
+    )
+    error, rightLED = sim.simxGetObjectHandle(
+        clientID, RIGHT_LED, sim.simx_opmode_blocking
+    )
 
     # ----------------------------------------------------------------------------------
 
@@ -205,10 +212,6 @@ if clientID != -1:
                     ) = sim.simxReadProximitySensor(
                         clientID, ultrasonic[i], sim.simx_opmode_buffer
                     )
-                    # print("Error reading proximity sensor")
-                    # sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot_wait)
-                    # sim.simxFinish(-1)
-                    # exit()
 
                 # If didn't detect anything, set distance to maxDistance
                 if detectionState == False:
@@ -219,7 +222,7 @@ if clientID != -1:
                     ultrasonicValue = distancePoint[2]
                     # If obstacle is too close, slow down the robot and send message
                     if ultrasonicValue <= minDistance:
-                        print(f"Detected obstacle at sensor{i}")
+                        # print(f"Detected obstacle at sensor{i}")
                         # Specify wich ultrasonic detected the obstacle
                         ultrasonicDetected[i] = True
 
@@ -255,7 +258,7 @@ if clientID != -1:
             yield [pyRTOS.timeout(0.05)]
 
     def task_color_sensor(self):
-        print("ENTERED COLOR SENSOR")
+        # print("ENTERED COLOR SENSOR")
         # Setup Code
         global colorSensorValue
         global ultrasonicValue
@@ -271,7 +274,7 @@ if clientID != -1:
 
             # If distance is less than minDistance, read color sensor
             if ultrasonicValue <= minDistance:
-                print("ENTERED IN IF AT COLOR SENSOR")
+                # print("ENTERED IN IF AT COLOR SENSOR")
                 ultrasonicValue = maxDistance
                 # print(
                 #     f"ultrasonicValue: {ultrasonicValue} and minDistance: {minDistance}"
@@ -320,7 +323,7 @@ if clientID != -1:
                 # print(f"img1: {img[1]}")
                 # print(f"img2: {img[2]}")
                 # print(f"rgbColor: {rgbColor}")
-                print(f"Color Sensor{index} detected: {colorSensorValue}")
+                # print(f"Color Sensor{index} detected: {colorSensorValue}")
                 self.send(
                     pyRTOS.Message(
                         HAS_READ_COLOR,
@@ -350,29 +353,49 @@ if clientID != -1:
                 colorSensorValue = ""
                 isTurning = True
 
-                # TODO Blink left LED
-
-                # Making right motor faster than left motor, in order to turn left
-                print("STARTED TURNING LEFT")
-                # sim.simxPauseCommunication(clientID, True)
-                # sim.simxSetJointTargetVelocity(
-                #     clientID, rightMotor, fasterVelocityToTurn, sim.simx_opmode_oneshot
-                # )
-                # sim.simxSetJointTargetVelocity(
-                #     clientID, leftMotor, slowerVelocityToTurn, sim.simx_opmode_oneshot
-                # )
-                # sim.simxPauseCommunication(clientID, False)
-                # time.sleep(timeTurning)
+                # Turn on left LED
+                # print("STARTED TURNING LEFT")
+                sim.simxSetObjectPosition(
+                    clientID,
+                    leftLED,
+                    robot,
+                    position_ON_LEFT_LED,
+                    sim.simx_opmode_oneshot,
+                )
 
                 turning.turn_90_degrees(clientID, 1, robot, rightMotor, leftMotor)
+
+                # Turn off left LED
+                sim.simxSetObjectPosition(
+                    clientID,
+                    leftLED,
+                    robot,
+                    position_OFF_LED,
+                    sim.simx_opmode_oneshot,
+                )
+
+                # Turn on right LED
+                sim.simxSetObjectPosition(
+                    clientID,
+                    rightLED,
+                    robot,
+                    position_ON_RIGHT_LED,
+                    sim.simx_opmode_oneshot,
+                )
+
                 turning.turn_90_degrees(clientID, -1, robot, rightMotor, leftMotor)
 
-                # TODO Turn back to original orientation
-
-                isTurning = False
+                # Turn off right LED
+                sim.simxSetObjectPosition(
+                    clientID,
+                    rightLED,
+                    robot,
+                    position_OFF_LED,
+                    sim.simx_opmode_oneshot,
+                )
+                # print("STOPED TURNING LEFT")
 
                 # Going back to normal velocity
-                print("STOPED TURNING LEFT")
                 sim.simxPauseCommunication(clientID, True)
                 sim.simxSetJointTargetVelocity(
                     clientID, rightMotor, wanderVelocity, sim.simx_opmode_oneshot
@@ -382,6 +405,17 @@ if clientID != -1:
                 )
                 sim.simxPauseCommunication(clientID, False)
                 time.sleep(0.1)
+
+                # # Turn off left LED
+                # sim.simxSetObjectPosition(
+                #     clientID,
+                #     leftLED,
+                #     robot,
+                #     position_OFF_LED,
+                #     sim.simx_opmode_oneshot,
+                # )
+
+                isTurning = False
 
                 self.send(
                     pyRTOS.Message(
@@ -397,29 +431,49 @@ if clientID != -1:
                 colorSensorValue = ""
                 isTurning = True
 
-                # TODO Blink right LED
-
-                # Making left motor faster than right motor, in order to turn right
-                print("STARTED TURNING RIGHT")
-                # sim.simxPauseCommunication(clientID, True)
-                # sim.simxSetJointTargetVelocity(
-                #     clientID, rightMotor, slowerVelocityToTurn, sim.simx_opmode_oneshot
-                # )
-                # sim.simxSetJointTargetVelocity(
-                #     clientID, leftMotor, fasterVelocityToTurn, sim.simx_opmode_oneshot
-                # )
-                # sim.simxPauseCommunication(clientID, False)
-                # time.sleep(timeTurning)
+                # Turn on right LED
+                # print("STARTED TURNING RIGHT")
+                sim.simxSetObjectPosition(
+                    clientID,
+                    rightLED,
+                    robot,
+                    position_ON_RIGHT_LED,
+                    sim.simx_opmode_oneshot,
+                )
 
                 turning.turn_90_degrees(clientID, -1, robot, rightMotor, leftMotor)
+
+                # Turn off right LED
+                sim.simxSetObjectPosition(
+                    clientID,
+                    rightLED,
+                    robot,
+                    position_OFF_LED,
+                    sim.simx_opmode_oneshot,
+                )
+
+                # Turn on left LED
+                sim.simxSetObjectPosition(
+                    clientID,
+                    leftLED,
+                    robot,
+                    position_ON_LEFT_LED,
+                    sim.simx_opmode_oneshot,
+                )
+
                 turning.turn_90_degrees(clientID, 1, robot, rightMotor, leftMotor)
 
-                # TODO Turn back to original orientation
-
-                isTurning = False
+                # Turn off left LED
+                sim.simxSetObjectPosition(
+                    clientID,
+                    leftLED,
+                    robot,
+                    position_OFF_LED,
+                    sim.simx_opmode_oneshot,
+                )
+                # print("STOPED TURNING RIGHT")
 
                 # Going back to normal velocity
-                print("STOPED TURNING RIGHT")
                 sim.simxPauseCommunication(clientID, True)
                 sim.simxSetJointTargetVelocity(
                     clientID, rightMotor, wanderVelocity, sim.simx_opmode_oneshot
@@ -429,6 +483,17 @@ if clientID != -1:
                 )
                 sim.simxPauseCommunication(clientID, False)
                 time.sleep(0.1)
+
+                # # Turn off right LED
+                # sim.simxSetObjectPosition(
+                #     clientID,
+                #     rightLED,
+                #     robot,
+                #     position_OFF_LED,
+                #     sim.simx_opmode_oneshot,
+                # )
+
+                isTurning = False
 
                 self.send(
                     pyRTOS.Message(
@@ -443,15 +508,19 @@ if clientID != -1:
                 colorSensorValue = ""
                 isTurning = True
 
-                print("STARTED 180 TURN")
+                # Turn on right LED
+                sim.simxSetObjectPosition(
+                    clientID,
+                    rightLED,
+                    robot,
+                    position_ON_RIGHT_LED,
+                    sim.simx_opmode_oneshot,
+                )
 
                 turning.turn_90_degrees(clientID, -1, robot, rightMotor, leftMotor)
                 turning.turn_90_degrees(clientID, -1, robot, rightMotor, leftMotor)
-
-                isTurning = False
 
                 # Going back to normal velocity
-                print("STOPED 180 TURN")
                 sim.simxPauseCommunication(clientID, True)
                 sim.simxSetJointTargetVelocity(
                     clientID, rightMotor, wanderVelocity, sim.simx_opmode_oneshot
@@ -461,6 +530,17 @@ if clientID != -1:
                 )
                 sim.simxPauseCommunication(clientID, False)
                 time.sleep(0.1)
+
+                # Turn off right LED
+                sim.simxSetObjectPosition(
+                    clientID,
+                    rightLED,
+                    robot,
+                    position_OFF_LED,
+                    sim.simx_opmode_oneshot,
+                )
+
+                isTurning = False
 
                 self.send(
                     pyRTOS.Message(
@@ -476,13 +556,58 @@ if clientID != -1:
             # yield [pyRTOS.wait_for_message(self)]
             yield [pyRTOS.timeout(0.05)]
 
+    def task_blink_LEDs(self):
+        # Setup Code
+        global isTurning
+        # End Setup code
+
+        # Pass control back to RTOS
+        yield
+
+        # Thread loop
+        while True:
+            # Work code
+            if not isTurning:
+                sim.simxSetObjectPosition(
+                    clientID,
+                    leftLED,
+                    robot,
+                    position_ON_LEFT_LED,
+                    sim.simx_opmode_oneshot,
+                )
+                sim.simxSetObjectPosition(
+                    clientID,
+                    rightLED,
+                    robot,
+                    position_ON_RIGHT_LED,
+                    sim.simx_opmode_oneshot,
+                )
+                time.sleep(0.2)
+                sim.simxSetObjectPosition(
+                    clientID,
+                    leftLED,
+                    robot,
+                    position_OFF_LED,
+                    sim.simx_opmode_oneshot,
+                )
+                sim.simxSetObjectPosition(
+                    clientID,
+                    rightLED,
+                    robot,
+                    position_OFF_LED,
+                    sim.simx_opmode_oneshot,
+                )
+                time.sleep(0.2)
+            # End Work code
+            yield [pyRTOS.timeout(0.2)]
+
     # ----------------------------------------------------------------------------------------
 
     # Adding tasks ---------------------------------------------------------------------------
     pyRTOS.add_task(
         pyRTOS.Task(
             task_wander,
-            priority=20,
+            priority=30,
             name="wander",
             notifications=None,
             mailbox=True,
@@ -500,7 +625,7 @@ if clientID != -1:
     pyRTOS.add_task(
         pyRTOS.Task(
             task_color_sensor,
-            priority=5,
+            priority=3,
             name="color_sensor",
             notifications=None,
             mailbox=True,
@@ -515,9 +640,15 @@ if clientID != -1:
             mailbox=True,
         )
     )
-    # pyRTOS.add_task(
-    #     pyRTOS.Task(task_LED, priority=6, name="LED", notifications=None, mailbox=True)
-    # )
+    pyRTOS.add_task(
+        pyRTOS.Task(
+            task_blink_LEDs,
+            priority=25,
+            name="blink_LED",
+            notifications=None,
+            mailbox=True,
+        )
+    )
 
     # ----------------------------------------------------------------------------------------
 
