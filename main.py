@@ -165,8 +165,6 @@ if clientID != -1:
 
         # Thread loop
         while True:
-            startingTime = time.time_ns()
-
             # Work code
 
             # Setting wandering velocity
@@ -180,8 +178,6 @@ if clientID != -1:
             sim.simxPauseCommunication(clientID, False)
             time.sleep(0.1)
             # End Work code
-
-            executionTimes.append(time.time_ns() - startingTime)
 
             yield [pyRTOS.wait_for_message(self)]
 
@@ -197,6 +193,7 @@ if clientID != -1:
 
         # Thread loop
         while True:
+            startingTime = time.time_ns()
             # Work code
             for i in range(len(ultrasonic)):
                 # Reading all ultrasonic sensors
@@ -261,6 +258,9 @@ if clientID != -1:
                         if i != 2:
                             break
             # End Work code
+            finishingTime = time.time_ns()
+            if finishingTime - startingTime > 0:
+                executionTimes.append(finishingTime - startingTime)
             print(f"Execution Times: {executionTimes}")
 
             yield [pyRTOS.timeout(0.05)]
