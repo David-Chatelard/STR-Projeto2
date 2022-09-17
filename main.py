@@ -274,6 +274,7 @@ if clientID != -1:
 
         # Thread loop
         while True:
+            startingTime = time.time_ns()
             # Work code
 
             # If distance is less than minDistance, read color sensor
@@ -337,6 +338,9 @@ if clientID != -1:
                     )
                 )
             # End Work code
+            finishingTime = time.time_ns()
+            if finishingTime - startingTime > 0:
+                executionTimes.append(finishingTime - startingTime)
 
             yield [pyRTOS.timeout(0.05)]
 
@@ -570,7 +574,6 @@ if clientID != -1:
 
         # Thread loop
         while True:
-            startingTime = time.time_ns()
             # Work code
             if not isTurning:
                 sim.simxSetObjectPosition(
@@ -604,9 +607,6 @@ if clientID != -1:
                 )
                 time.sleep(0.2)
             # End Work code
-            finishingTime = time.time_ns()
-            if finishingTime - startingTime > 0:
-                executionTimes.append(finishingTime - startingTime)
 
             yield [pyRTOS.timeout(0.2)]
 
