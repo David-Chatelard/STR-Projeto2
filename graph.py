@@ -251,12 +251,17 @@ executionTimeWander = [
     109098800,
 ]
 
+print("------------------------------------------------------------------------")
 print(f"executionTimeWander: {len(executionTimeWander)}")
+print(f"variance wander: {np.var(executionTimeWander)}")
+print(f"max wander: {max(executionTimeWander)}")
+print(f"estimate wcet wander: {max(executionTimeWander) + np.var(executionTimeWander)}")
 # plt.title("Frequência do Tempo de Execução - Task Wander")
 # plt.xlabel("Tempo de execução (ns)")
 # plt.ylabel("Ocorrências")
 # plt.hist(executionTimeWander, 10, rwidth=0.9)
 # plt.show()
+print("------------------------------------------------------------------------")
 
 executionTimeUltrasonic = [
     126587500,
@@ -528,12 +533,19 @@ executionTimeUltrasonic = [
     112101100,
 ]
 
+print("------------------------------------------------------------------------")
 print(f"executionTimeUltrasonic: {len(executionTimeUltrasonic)}")
+print(f"variance Ultrasonic: {np.var(executionTimeUltrasonic)}")
+print(f"max ultrasonic: {max(executionTimeUltrasonic)}")
+print(
+    f"estimate wcet ultrasonic: {max(executionTimeUltrasonic) + np.var(executionTimeUltrasonic)}"
+)
 # plt.title("Frequência do Tempo de Execução - Task Ultrasonic")
 # plt.xlabel("Tempo de execução (ns)")
 # plt.ylabel("Ocorrências")
 # plt.hist(executionTimeUltrasonic, 10, rwidth=0.9)
 # plt.show()
+print("------------------------------------------------------------------------")
 
 executionTimeColorSensor = [
     31027800,
@@ -569,25 +581,20 @@ executionTimeColorSensor = [
     29789272,
 ]
 
+print("------------------------------------------------------------------------")
 print(f"executionTimeColorSensor: {len(executionTimeColorSensor)}")
-cando = True
-count = 0
-
-while cando == True:
-    value = randint(455400, 48044600)
-    executionTimeColorSensor.append(value)
-    count += 1
-    if count == 200:
-        cando = False
-
-print(f"executionTimeColorSensor: {len(executionTimeColorSensor)}")
-# print(f"max: {max(executionTimeColorSensor)}")
+print(f"variance color sensor: {np.var(executionTimeColorSensor)}")
+print(f"max color sensor: {max(executionTimeColorSensor)}")
+print(
+    f"estimate wcet color sensor: {max(executionTimeColorSensor) + np.var(executionTimeColorSensor)}"
+)
 # print(f"min: {min(executionTimeColorSensor)}")
 # plt.title("Frequência do Tempo de Execução - Task Color Sensor")
 # plt.xlabel("Tempo de execução (ns)")
 # plt.ylabel("Ocorrências")
 # plt.hist(executionTimeColorSensor, 10, rwidth=0.9)
 # plt.show()
+print("------------------------------------------------------------------------")
 
 executionTimeRouteManager = [
     9364679400,
@@ -648,25 +655,20 @@ executionTimeRouteManager = [
     7943904800,
 ]
 
+print("------------------------------------------------------------------------")
 print(f"executionTimeRouteManager: {len(executionTimeRouteManager)}")
-cando = True
-count = 0
-
-while cando == True:
-    value = randint(7943904800, 11611997200)
-    executionTimeRouteManager.append(value)
-    count += 1
-    if count == 200:
-        cando = False
-
-print(f"executionTimeRouteManager: {len(executionTimeRouteManager)}")
-# print(f"max: {max(executionTimeRouteManager)}")
+print(f"variance route manager: {np.var(executionTimeRouteManager)}")
+print(f"max route manager: {max(executionTimeRouteManager)}")
+print(
+    f"estimate wcet route manager: {max(executionTimeRouteManager) + np.var(executionTimeRouteManager)}"
+)
 # print(f"min: {min(executionTimeRouteManager)}")
 # plt.title("Frequência do Tempo de Execução - Task Route Manager")
 # plt.xlabel("Tempo de execução (ns)")
 # plt.ylabel("Ocorrências")
 # plt.hist(executionTimeRouteManager, 10, rwidth=0.9)
 # plt.show()
+print("------------------------------------------------------------------------")
 
 executionTimeBlinkLeds = [
     407885000,
@@ -927,9 +929,16 @@ executionTimeBlinkLeds = [
     408022100,
 ]
 
+print("------------------------------------------------------------------------")
 print(f"executionTimeBlinkLeds: {len(executionTimeBlinkLeds)}")
+print(f"variance blink: {np.var(executionTimeBlinkLeds)}")
+print(f"max blink led: {max(executionTimeBlinkLeds)}")
+print(
+    f"estimate wcet blink led: {max(executionTimeBlinkLeds) + np.var(executionTimeBlinkLeds)}"
+)
 # plt.title("Frequência do Tempo de Execução - Task Blink LEDs")
 # plt.xlabel("Tempo de execução (ns)")
 # plt.ylabel("Ocorrências")
 # plt.hist(executionTimeBlinkLeds, 10, rwidth=0.9)
 # plt.show()
+print("------------------------------------------------------------------------")
