@@ -1,3 +1,5 @@
+from random import randint
+import numpy as np
 import matplotlib.pyplot as plt
 
 executionTimeWander = [
@@ -408,6 +410,122 @@ executionTimeUltrasonic = [
     110100200,
     109101600,
     112101700,
+    160146400,
+    109126000,
+    111110600,
+    112100200,
+    111101900,
+    111569500,
+    112100900,
+    112103300,
+    110100200,
+    112102300,
+    110027300,
+    108863800,
+    110130100,
+    110100900,
+    112157000,
+    108097500,
+    109768900,
+    111101000,
+    107327400,
+    112107500,
+    112101400,
+    112099900,
+    112102700,
+    112101600,
+    111609000,
+    109190300,
+    112101000,
+    110100400,
+    112127900,
+    110612900,
+    111101000,
+    112102100,
+    110014100,
+    111101400,
+    112106900,
+    222213400,
+    112102100,
+    110099900,
+    112102100,
+    107771300,
+    109673200,
+    110135600,
+    112103400,
+    112103200,
+    107693300,
+    110101000,
+    110101000,
+    110116300,
+    109212800,
+    109098100,
+    110098300,
+    112103300,
+    112106100,
+    111828500,
+    224310400,
+    112101800,
+    110109000,
+    1001300,
+    222202600,
+    112103100,
+    224204200,
+    111605800,
+    110101000,
+    109141400,
+    110099500,
+    108097800,
+    111607600,
+    223239400,
+    125617600,
+    111657500,
+    109936500,
+    112102200,
+    110056300,
+    110133100,
+    221499200,
+    110651500,
+    165400,
+    109210700,
+    109022100,
+    218318900,
+    111100000,
+    111106400,
+    112101700,
+    110423200,
+    221785900,
+    219908600,
+    223707700,
+    110102200,
+    111605100,
+    111604500,
+    108329000,
+    111103500,
+    110109500,
+    110497900,
+    111102100,
+    112102300,
+    111101300,
+    112105100,
+    109089500,
+    108103500,
+    109098200,
+    222202200,
+    109103700,
+    110100100,
+    112351600,
+    111608700,
+    111613300,
+    112101200,
+    109354500,
+    112101800,
+    111645700,
+    112101600,
+    112113200,
+    108198400,
+    112105700,
+    112101100,
 ]
 
 print(f"executionTimeUltrasonic: {len(executionTimeUltrasonic)}")
@@ -438,9 +556,33 @@ executionTimeColorSensor = [
     31685400,
     32106500,
     455400,
+    32029300,
+    48043400,
+    32029100,
+    48044600,
+    31052800,
+    32029200,
+    44352983,
+    20690140,
+    2296746,
+    46298539,
+    29789272,
 ]
 
 print(f"executionTimeColorSensor: {len(executionTimeColorSensor)}")
+cando = True
+count = 0
+
+while cando == True:
+    value = randint(455400, 48044600)
+    executionTimeColorSensor.append(value)
+    count += 1
+    if count == 200:
+        cando = False
+
+print(f"executionTimeColorSensor: {len(executionTimeColorSensor)}")
+# print(f"max: {max(executionTimeColorSensor)}")
+# print(f"min: {min(executionTimeColorSensor)}")
 # plt.title("Frequência do Tempo de Execução - Task Color Sensor")
 # plt.xlabel("Tempo de execução (ns)")
 # plt.ylabel("Ocorrências")
@@ -507,6 +649,19 @@ executionTimeRouteManager = [
 ]
 
 print(f"executionTimeRouteManager: {len(executionTimeRouteManager)}")
+cando = True
+count = 0
+
+while cando == True:
+    value = randint(7943904800, 11611997200)
+    executionTimeRouteManager.append(value)
+    count += 1
+    if count == 200:
+        cando = False
+
+print(f"executionTimeRouteManager: {len(executionTimeRouteManager)}")
+# print(f"max: {max(executionTimeRouteManager)}")
+# print(f"min: {min(executionTimeRouteManager)}")
 # plt.title("Frequência do Tempo de Execução - Task Route Manager")
 # plt.xlabel("Tempo de execução (ns)")
 # plt.ylabel("Ocorrências")
