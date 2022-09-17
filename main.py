@@ -58,6 +58,9 @@ position_OFF_LED = [0, 0, 0]
 position_ON_LEFT_LED = [-0.185, 0.097, 0.00519]
 position_ON_RIGHT_LED = [-0.185, -0.097, 0.00519]
 
+# Array for execution times
+executionTimes = []
+
 
 # PyRTOS definitions for messages ----------
 HAS_READ_ULSTRASONIC = 128
@@ -162,6 +165,8 @@ if clientID != -1:
 
         # Thread loop
         while True:
+            startingTime = time.time_ns()
+
             # Work code
 
             # Setting wandering velocity
@@ -175,6 +180,8 @@ if clientID != -1:
             sim.simxPauseCommunication(clientID, False)
             time.sleep(0.1)
             # End Work code
+
+            executionTimes.append(time.time_ns() - startingTime)
 
             yield [pyRTOS.wait_for_message(self)]
 
